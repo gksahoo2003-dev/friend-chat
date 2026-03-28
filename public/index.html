@@ -1,54 +1,129 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Love Chat 💖</title>
+    <title>Friend Chat 💖</title>
+
     <style>
         body {
             font-family: Arial;
-            background: pink;
+            background: linear-gradient(to right, #ff758c, #ff7eb3);
             text-align: center;
+            color: white;
         }
+
+        h1 {
+            margin-top: 10px;
+        }
+
         #messages {
             height: 300px;
             overflow-y: scroll;
-            border: 1px solid white;
             background: white;
+            color: black;
             padding: 10px;
+            border-radius: 10px;
+            margin: 10px;
         }
+
+        .msg {
+            background: #ffe6ec;
+            margin: 5px;
+            padding: 8px;
+            border-radius: 10px;
+            text-align: left;
+        }
+
         input {
-            width: 70%;
+            width: 50%;
             padding: 10px;
+            border-radius: 10px;
+            border: none;
         }
+
         button {
             padding: 10px;
+            border-radius: 10px;
+            border: none;
+            margin: 5px;
             background: red;
             color: white;
+            cursor: pointer;
         }
+
+        #emojiBox {
+            display: none;
+        }
+
     </style>
 </head>
 
 <body>
 
-<h1>💖 Love Chat 💖</h1>
+<h1>💖 friend-chat 💖</h1>
 
 <div id="messages"></div>
 
 <input id="msg" placeholder="Type message ❤️">
+
 <button onclick="sendMsg()">Send</button>
+<button onclick="toggleEmoji()">😊</button>
+
+<input type="file" id="fileInput">
+
+<div id="emojiBox">
+    😀 😍 😂 😘 ❤️ 😎 😭 😡 🎉 💖
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
 var socket = io();
 
 function sendMsg() {
     let msg = document.getElementById("msg").value;
-    socket.emit("chat message", msg);
+    socket.emit("chat message", { type: "text", msg: msg });
     document.getElementById("msg").value = "";
 }
 
-socket.on("chat message", function(msg) {
+socket.on("chat message", function(data) {
     let div = document.getElementById("messages");
-    div.innerHTML += "<p>💖 " + msg + "</p>";
+
+    if(data.type === "text"){
+        div.innerHTML += "<div class='msg'>💖 " + data.msg + "</div>";
+    }
+    else if(data.type === "image"){
+        div.innerHTML += "<div class='msg'><img src='"+data.msg+"' width='150'></div>";
+    }
+    else if(data.type === "video"){
+        div.innerHTML += "<div class='msg'><video src='"+data.msg+"' width='150' controls></video></div>";
+    }
+});
+
+function toggleEmoji(){
+    let box = document.getElementById("emojiBox");
+    box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+document.getElementById("emojiBox").addEventListener("click", function(e){
+    document.getElementById("msg").value += e.target.innerText;
+});
+
+document.getElementById("fileInput").addEventListener("change", function(){
+    let file = this.files[0];
+    let reader = new FileReader();
+
+    reader.onload = function(e){
+        let data = e.target.result;
+
+        if(file.type.startsWith("image")){
+            socket.emit("chat message", { type: "image", msg: data });
+        }
+        else if(file.type.startsWith("video")){
+            socket.emit("chat message", { type: "video", msg: data });
+        }
+    };
+
+    reader.readAsDataURL(file);
 });
 </script>
 
