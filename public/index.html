@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Love Chat 💖</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: pink;
+            text-align: center;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid white;
+            background: white;
+            padding: 10px;
+        }
+        input {
+            width: 70%;
+            padding: 10px;
+        }
+        button {
+            padding: 10px;
+            background: red;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>💖 Love Chat 💖</h1>
+
+<div id="messages"></div>
+
+<input id="msg" placeholder="Type message ❤️">
+<button onclick="sendMsg()">Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+var socket = io();
+
+function sendMsg() {
+    let msg = document.getElementById("msg").value;
+    socket.emit("chat message", msg);
+    document.getElementById("msg").value = "";
+}
+
+socket.on("chat message", function(msg) {
+    let div = document.getElementById("messages");
+    div.innerHTML += "<p>💖 " + msg + "</p>";
+});
+</script>
+
+</body>
+</html>
