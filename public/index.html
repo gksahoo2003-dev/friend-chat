@@ -11,12 +11,8 @@
             color: white;
         }
 
-        h1 {
-            margin-top: 10px;
-        }
-
         #messages {
-            height: 300px;
+            height: 250px;
             overflow-y: scroll;
             background: white;
             color: black;
@@ -50,38 +46,51 @@
             cursor: pointer;
         }
 
-        #emojiBox {
-            display: none;
+        video {
+            margin: 5px;
+            border-radius: 10px;
         }
-
     </style>
 </head>
 
 <body>
 
-<h1>💖 friend-chat 💖</h1>
+<h1>💖 Friend Chat 💖</h1>
 
 <div id="messages"></div>
 
 <input id="msg" placeholder="Type message ❤️">
-
 <button onclick="sendMsg()">Send</button>
-<button onclick="toggleEmoji()">😊</button>
+
+<br><br>
+
+<button onclick="startCall()">📞 Call</button>
+<button onclick="endCall()">❌ End</button>
+
+<br><br>
+
+<video id="localVideo" autoplay muted width="200"></video>
+<video id="remoteVideo" autoplay width="200"></video>
+
+<br><br>
 
 <input type="file" id="fileInput">
-
-<div id="emojiBox">
-    😀 😍 😂 😘 ❤️ 😎 😭 😡 🎉 💖
-</div>
 
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-var socket = io();
+const socket = io();
+
+/* ================= CHAT ================= */
 
 function sendMsg() {
     let msg = document.getElementById("msg").value;
-    socket.emit("chat message", { type: "text", msg: msg });
+
+    socket.emit("chat message", {
+        type: "text",
+        msg: msg
+    });
+
     document.getElementById("msg").value = "";
 }
 
@@ -97,16 +106,11 @@ socket.on("chat message", function(data) {
     else if(data.type === "video"){
         div.innerHTML += "<div class='msg'><video src='"+data.msg+"' width='150' controls></video></div>";
     }
+
+    div.scrollTop = div.scrollHeight;
 });
 
-function toggleEmoji(){
-    let box = document.getElementById("emojiBox");
-    box.style.display = box.style.display === "none" ? "block" : "none";
-}
-
-document.getElementById("emojiBox").addEventListener("click", function(e){
-    document.getElementById("msg").value += e.target.innerText;
-});
+/* ================= FILE ================= */
 
 document.getElementById("fileInput").addEventListener("change", function(){
     let file = this.files[0];
@@ -125,11 +129,101 @@ document.getElementById("fileInput").addEventListener("change", function(){
 
     reader.readAsDataURL(file);
 });
-</script>
-<footer>
-  <p>© <span id="year"></span>Made By Goutam With ❤️ </p>
-</footer>
 
+/* ================= VIDEO CALL ================= */
+
+let localStream;
+let peerConnection;
+
+const servers = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+    ]
+};
+
+// Get camera + mic
+navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+.then(stream => {
+    localStream = stream;
+    document.getElementById("localVideo").srcObject = stream;
+});
+
+// Start call
+function startCall() {
+
+    peerConnection = new RTCPeerConnection(servers);
+
+    // add local stream
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    // receive remote stream
+    peerConnection.ontrack = event => {
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+    };
+
+    // send ice
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+            socket.emit("signal", {
+                candidate: event.candidate
+            });
+        }
+    };
+
+    // create offer
+    peerConnection.createOffer()
+    .then(offer => peerConnection.setLocalDescription(offer))
+    .then(() => {
+        socket.emit("signal", {
+            offer: peerConnection.localDescription
+        });
+    });
+}
+
+// Receive signal
+socket.on("signal", async (data) => {
+
+    if (data.offer) {
+
+        peerConnection = new RTCPeerConnection(servers);
+
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+
+        peerConnection.ontrack = event => {
+            document.getElementById("remoteVideo").srcObject = event.streams[0];
+        };
+
+        await peerConnection.setRemoteDescription(data.offer);
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        socket.emit("signal", {
+            answer: answer
+        });
+    }
+
+    if (data.answer) {
+        await peerConnection.setRemoteDescription(data.answer);
+    }
+
+    if (data.candidate) {
+        await peerConnection.addIceCandidate(data.candidate);
+    }
+});
+
+// End call
+function endCall() {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+}
+</script>
 
 </body>
 </html>

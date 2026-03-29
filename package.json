@@ -3,14 +3,23 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gksahoo2003-dev/friend-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gksahoo2003-dev/friend-chat/issues"
+  },
+  "homepage": "https://github.com/gksahoo2003-dev/friend-chat#readme",
+  "description": ""
 }
